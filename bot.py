@@ -6,11 +6,18 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from pathlib import Path
 
-# 🔧 ログ設定
+import logging
+import sys
+
+# Gunicorn互換のログ設定
 logging.basicConfig(
     level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # ← ここでstdoutに出力を強制
+    ]
 )
+
 logger = logging.getLogger(__name__)
 
 # ✅ 初期化フラグ
