@@ -1,7 +1,6 @@
 import ccxt
 import os
 import time
-import threading
 import logging
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
@@ -11,11 +10,12 @@ from threading import Event
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 logger = logging.getLogger(__name__)
 
+# 環境変数読み込み
 load_dotenv()
-
 api_key = os.getenv("BYBIT_API_KEY")
 api_secret = os.getenv("BYBIT_API_SECRET")
 
+# Bybit接続
 exchange = ccxt.bybit({
     'apiKey': api_key,
     'secret': api_secret,
@@ -27,17 +27,17 @@ exchange = ccxt.bybit({
     }
 })
 
+# Flaskアプリと準備フラグ
 app = Flask(__name__)
 ready_event = Event()
 
-def wait_until_ready():
-    logger.info("⏳ サーバー初期化中... 5秒待機")
-    time.sleep(5)
+# 🔁 Gunicornワーカー内でのみ実行される初期化処理
+@app.before_first_request
+def before_first_request():
+    logger.info("🛠 Flaskワーカー初期化開始")
+    time.sleep(2)  # 必要なら待機時間
     ready_event.set()
-    logger.info("✅ サーバー受信準備完了")
-
-# スレッドで初期化
-threading.Thread(target=wait_until_ready).start()
+    logger.info("✅ Flaskワーカー準備完了")
 
 def get_current_position(symbol):
     try:
