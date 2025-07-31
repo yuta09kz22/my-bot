@@ -4,6 +4,7 @@ import time
 import logging
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from pathlib import Path
 
 # 🔧 ログ設定
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
@@ -15,9 +16,16 @@ is_ready = False
 app = Flask(__name__)
 
 try:
-    load_dotenv()
-    api_key = os.getenv("BYBIT_API_KEY")
+　　# このスクリプト(bot.pyなど)が存在するディレクトリを基準に.envのパスを構成
+　　env_path = Path(__file__).resolve().parent / '.env'
+
+　　# 明示的にパスを指定して読み込む
+　　load_dotenv(dotenv_path=env_path)
+　　api_key = os.getenv("BYBIT_API_KEY")
     api_secret = os.getenv("BYBIT_API_SECRET")
+
+　　logger.info(f"BYBIT_API_KEY: {api_key}")
+　　logger.info(f"BYBIT_API_SECRET: {api_secret}")
 
     if not api_key or not api_secret:
         raise ValueError("BYBIT_API_KEYまたはBYBIT_API_SECRETが設定されていません")
