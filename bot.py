@@ -4,11 +4,15 @@ import time
 import logging
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from threading import Event
 
 # 🔧 ログ設定
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 logger = logging.getLogger(__name__)
+
+# ✅ 初期化フラグ
+is_ready = False
+
+app = Flask(__name__)
 
 try:
     load_dotenv()
@@ -16,7 +20,7 @@ try:
     api_secret = os.getenv("BYBIT_API_SECRET")
 
     if not api_key or not api_secret:
-        raise ValueError("環境変数が設定されていません")
+        raise ValueError("BYBIT_API_KEYまたはBYBIT_API_SECRETが設定されていません")
 
     exchange = ccxt.bybit({
         'apiKey': api_key,
@@ -29,7 +33,9 @@ try:
         }
     })
 
-    ready_event.set()
+    # 少し待つ（ccxtの初期化が失敗しやすい対策）
+    time.sleep(3)
+    is_ready = True
     logger.info("✅ サーバー受信準備完了")
 
 except Exception as e:
@@ -140,7 +146,7 @@ def place_order(symbol, side):
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    if not ready_event.is_set():
+    if not is_ready:
         return jsonify({"error": "Server not ready"}), 503
 
     data = request.json
