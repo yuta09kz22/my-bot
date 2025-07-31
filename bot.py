@@ -1,7 +1,6 @@
 import ccxt
 import os
 import time
-import threading
 import logging
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
@@ -30,9 +29,9 @@ exchange = ccxt.bybit({
 app = Flask(__name__)
 ready_event = Event()
 
-# ✅ Gunicornで確実に動作するように、即時セット
+# 即時 ready フラグを ON にする（スレッド不要）
 ready_event.set()
-logger.info("✅ グローバルで受信準備完了")
+logger.info("✅ サーバー受信準備完了")
 
 def get_current_position(symbol):
     try:
