@@ -10,28 +10,30 @@ from threading import Event
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+try:
+    load_dotenv()
+    api_key = os.getenv("BYBIT_API_KEY")
+    api_secret = os.getenv("BYBIT_API_SECRET")
 
-api_key = os.getenv("BYBIT_API_KEY")
-api_secret = os.getenv("BYBIT_API_SECRET")
+    if not api_key or not api_secret:
+        raise ValueError("環境変数が設定されていません")
 
-exchange = ccxt.bybit({
-    'apiKey': api_key,
-    'secret': api_secret,
-    'enableRateLimit': True,
-    'options': {
-        'defaultType': 'linear',
-        'adjustForTimeDifference': True,
-        'recvWindow': 10000
-    }
-})
+    exchange = ccxt.bybit({
+        'apiKey': api_key,
+        'secret': api_secret,
+        'enableRateLimit': True,
+        'options': {
+            'defaultType': 'linear',
+            'adjustForTimeDifference': True,
+            'recvWindow': 10000
+        }
+    })
 
-app = Flask(__name__)
-ready_event = Event()
+    ready_event.set()
+    logger.info("✅ サーバー受信準備完了")
 
-# 即時 ready フラグを ON にする（スレッド不要）
-ready_event.set()
-logger.info("✅ サーバー受信準備完了")
+except Exception as e:
+    logger.error(f"❌ 初期化失敗: {e}")
 
 def get_current_position(symbol):
     try:
