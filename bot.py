@@ -65,5 +65,7 @@ def create_app():
 
     return app
 
-# ✅ WSGI用にFlaskアプリを公開
-app = create_app()
+def get_app():
+    return create_app()
+
+app = get_app()
