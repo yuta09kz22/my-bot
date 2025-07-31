@@ -30,6 +30,10 @@ def wait_until_ready():
     ready_event.set()
     print("✅ サーバー受信準備完了")
 
+# サーバー初期化スレッド起動
+import threading
+threading.Thread(target=wait_until_ready).start()
+
 def get_current_position(symbol):
     positions = exchange.fetch_positions([symbol])
     for p in positions:
@@ -149,8 +153,3 @@ def webhook():
         return jsonify({"result": result})
     else:
         return jsonify({"error": "symbol or side missing"}), 400
-
-if __name__ == '__main__':
-    import threading
-    threading.Thread(target=wait_until_ready).start()
-    app.run(port=5000)
