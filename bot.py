@@ -7,25 +7,26 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 # 🔧 ログ設定
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # ✅ 初期化フラグ
 is_ready = False
 
+# Flask アプリ作成
 app = Flask(__name__)
 
+# ✅ .envを読み込む（絶対パス指定）
 try:
-　　# このスクリプト(bot.pyなど)が存在するディレクトリを基準に.envのパスを構成
-　　env_path = Path(__file__).resolve().parent / '.env'
+    env_path = Path(__file__).resolve().parent / '.env'
+    logger.info(f".envのパス: {env_path}")
+    load_dotenv(dotenv_path=env_path)
 
-　　# 明示的にパスを指定して読み込む
-　　load_dotenv(dotenv_path=env_path)
-　　api_key = os.getenv("BYBIT_API_KEY")
+    api_key = os.getenv("BYBIT_API_KEY")
     api_secret = os.getenv("BYBIT_API_SECRET")
-
-　　logger.info(f"BYBIT_API_KEY: {api_key}")
-　　logger.info(f"BYBIT_API_SECRET: {api_secret}")
 
     if not api_key or not api_secret:
         raise ValueError("BYBIT_API_KEYまたはBYBIT_API_SECRETが設定されていません")
@@ -41,8 +42,7 @@ try:
         }
     })
 
-    # 少し待つ（ccxtの初期化が失敗しやすい対策）
-    time.sleep(3)
+    time.sleep(3)  # 初期化安定化のための待機
     is_ready = True
     logger.info("✅ サーバー受信準備完了")
 
