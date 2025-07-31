@@ -1,9 +1,15 @@
 import ccxt
 import os
 import time
+import threading
+import logging
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from threading import Event
+
+# 🔧 ログ設定
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -25,23 +31,25 @@ app = Flask(__name__)
 ready_event = Event()
 
 def wait_until_ready():
-    print("⏳ サーバー初期化中... 5秒待機")
+    logger.info("⏳ サーバー初期化中... 5秒待機")
     time.sleep(5)
     ready_event.set()
-    print("✅ サーバー受信準備完了")
+    logger.info("✅ サーバー受信準備完了")
 
-# サーバー初期化スレッド起動
-import threading
+# スレッドで初期化
 threading.Thread(target=wait_until_ready).start()
 
 def get_current_position(symbol):
-    positions = exchange.fetch_positions([symbol])
-    for p in positions:
-        if p['symbol'] == symbol and abs(p['contracts']) > 0:
-            return {
-                'side': 'long' if p['side'].lower() == 'long' else 'short',
-                'contracts': p['contracts']
-            }
+    try:
+        positions = exchange.fetch_positions([symbol])
+        for p in positions:
+            if p['symbol'] == symbol and abs(p['contracts']) > 0:
+                return {
+                    'side': 'long' if p['side'].lower() == 'long' else 'short',
+                    'contracts': p['contracts']
+                }
+    except Exception as e:
+        logger.error(f"❌ ポジション取得失敗: {e}")
     return None
 
 def close_position(symbol, current_side):
@@ -50,8 +58,7 @@ def close_position(symbol, current_side):
         amount = exchange.fetch_position(symbol)['contracts']
         if amount == 0:
             return
-
-        print(f"🚪 ポジション決済: {current_side.upper()} {amount}")
+        logger.info(f"🚪 ポジション決済: {current_side.upper()} {amount}")
         exchange.create_order(
             symbol=symbol,
             type='market',
@@ -60,7 +67,7 @@ def close_position(symbol, current_side):
             params={"reduceOnly": True}
         )
     except Exception as e:
-        print(f"❌ 決済失敗: {e}")
+        logger.error(f"❌ 決済失敗: {e}")
 
 def place_order(symbol, side):
     leverage = 10
@@ -69,25 +76,24 @@ def place_order(symbol, side):
 
         try:
             exchange.set_leverage(leverage, symbol)
-            print(f"✅ レバレッジを {leverage}x に設定しました: {symbol}")
+            logger.info(f"✅ レバレッジを {leverage}x に設定しました: {symbol}")
         except ccxt.ExchangeError as e:
             if 'leverage not modified' in str(e).lower():
-                print(f"ℹ️ レバレッジは既に設定済みです: {symbol}")
+                logger.info(f"ℹ️ レバレッジは既に設定済みです: {symbol}")
             else:
                 raise e
 
-        # 現在のポジション確認と決済処理
         current_position = get_current_position(symbol)
         if current_position:
             current_side = current_position['side']
             if (side.lower() == 'buy' and current_side == 'short') or (side.lower() == 'sell' and current_side == 'long'):
                 close_position(symbol, current_side)
-                print("⏳ 決済完了まで3秒待機")
+                logger.info("⏳ 決済完了まで3秒待機")
                 time.sleep(3)
 
         balance = exchange.fetch_balance()
         usdt_balance = balance['total'].get('USDT', 0)
-        print(f"💰 USDT残高: {usdt_balance}")
+        logger.info(f"💰 USDT残高: {usdt_balance}")
 
         price = exchange.fetch_ticker(symbol)['last']
         market = exchange.market(symbol)
@@ -120,7 +126,7 @@ def place_order(symbol, side):
             'stopLoss': str(sl_price)
         }
 
-        print(f"🛒 注文実行: Side={side}, Qty={quantity}, TP={tp_price}, SL={sl_price}")
+        logger.info(f"🛒 注文実行: Side={side}, Qty={quantity}, TP={tp_price}, SL={sl_price}")
         order = exchange.create_order(
             symbol=symbol,
             type='market',
@@ -133,7 +139,7 @@ def place_order(symbol, side):
         return order
 
     except Exception as e:
-        print(f"❌ 注文処理中のエラー: {e}")
+        logger.error(f"❌ 注文処理中のエラー: {e}")
         return {'error': str(e)}
 
 @app.route('/webhook', methods=['POST'])
@@ -142,14 +148,14 @@ def webhook():
         return jsonify({"error": "Server not ready"}), 503
 
     data = request.json
-    print(f"📩 Received: {data}")
+    logger.info(f"📩 Webhook受信: {data}")
 
     symbol = data.get("symbol")
     side = data.get("side")
 
     if symbol and side:
         result = place_order(symbol, side)
-        print(f"📦 Order Result: {result}")
+        logger.info(f"📦 注文結果: {result}")
         return jsonify({"result": result})
     else:
         return jsonify({"error": "symbol or side missing"}), 400
