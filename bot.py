@@ -2,13 +2,15 @@ import os
 import ccxt
 import time
 import logging
+import sys
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from pathlib import Path
 
+# ✅ ロガー設定（stdout に出すよう明示）
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
+handler = logging.StreamHandler(sys.stdout)  # stdout に出力
 formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
