@@ -2,25 +2,29 @@ import ccxt
 import os
 import time
 import logging
-import sys
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from pathlib import Path
 
-# 🔧 ログ設定（stdoutへ）
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+# 🔧 ログ設定
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 logger = logging.getLogger(__name__)
+
+# ✅ Flask アプリ生成
+app = Flask(__name__)
 
 # ✅ 初期化フラグ
 is_ready = False
 
-app = Flask(__name__)
+# ✅ .env 読み込み（絶対パス指定）
+env_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
+# ✅ Bybit API 初期化
 try:
-    load_dotenv()
+    logger.info("⏳ サーバー初期化中... 5秒待機")
+    time.sleep(5)
+
     api_key = os.getenv("BYBIT_API_KEY")
     api_secret = os.getenv("BYBIT_API_SECRET")
 
@@ -44,6 +48,8 @@ try:
 
 except Exception as e:
     logger.error(f"❌ 初期化失敗: {e}")
+
+# --- 残りの関数はそのまま（省略せず貼っています） ---
 
 def get_current_position(symbol):
     try:
@@ -151,7 +157,7 @@ def place_order(symbol, side):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if not is_ready:
-        logger.info("準備失敗")
+        logger.warning("⚠️ Webhook受信時に初期化未完了")
         return jsonify({"error": "Server not ready"}), 503
 
     data = request.json
