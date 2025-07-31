@@ -2,47 +2,27 @@ import ccxt
 import os
 import time
 import logging
+import sys
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-from pathlib import Path
 
-import logging
-import sys
-
-# Gunicorn互換のログ設定
+# 🔧 ログ設定（stdoutへ）
 logging.basicConfig(
     level=logging.INFO,
     format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)  # ← ここでstdoutに出力を強制
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
-
 logger = logging.getLogger(__name__)
 
 # ✅ 初期化フラグ
 is_ready = False
 
-# Flask アプリ作成
 app = Flask(__name__)
 
-# ✅ .envを読み込む（絶対パス指定）
 try:
-    env_path = Path(__file__).resolve().parent / '.env'
-    logger.info(f".envのパス: {env_path}")
-    # 以下を追加
-    if not env_path.exists():
-        logger.error(f".envファイルが見つかりません: {env_path}")
-    else:
-        logger.info(f".envファイルは存在します: {env_path}")
-
-    load_dotenv(dotenv_path=env_path)
-
+    load_dotenv()
     api_key = os.getenv("BYBIT_API_KEY")
     api_secret = os.getenv("BYBIT_API_SECRET")
-
-    logger.info(f"API Key (first 5 chars): {api_key[:5] if api_key else 'None'}")
-    logger.info(f"API Secret (first 5 chars): {api_secret[:5] if api_secret else 'None'}")
 
     if not api_key or not api_secret:
         raise ValueError("BYBIT_API_KEYまたはBYBIT_API_SECRETが設定されていません")
@@ -58,7 +38,7 @@ try:
         }
     })
 
-    time.sleep(3)  # 初期化安定化のための待機
+    time.sleep(3)
     is_ready = True
     logger.info("✅ サーバー受信準備完了")
 
@@ -171,7 +151,7 @@ def place_order(symbol, side):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if not is_ready:
-　　　　logger.info(f"準備失敗")
+        logger.info("準備失敗")
         return jsonify({"error": "Server not ready"}), 503
 
     data = request.json
