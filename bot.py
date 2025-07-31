@@ -30,10 +30,19 @@ app = Flask(__name__)
 try:
     env_path = Path(__file__).resolve().parent / '.env'
     logger.info(f".envのパス: {env_path}")
+    # 以下を追加
+    if not env_path.exists():
+        logger.error(f".envファイルが見つかりません: {env_path}")
+    else:
+        logger.info(f".envファイルは存在します: {env_path}")
+
     load_dotenv(dotenv_path=env_path)
 
     api_key = os.getenv("BYBIT_API_KEY")
     api_secret = os.getenv("BYBIT_API_SECRET")
+
+    logger.info(f"API Key (first 5 chars): {api_key[:5] if api_key else 'None'}")
+    logger.info(f"API Secret (first 5 chars): {api_secret[:5] if api_secret else 'None'}")
 
     if not api_key or not api_secret:
         raise ValueError("BYBIT_API_KEYまたはBYBIT_API_SECRETが設定されていません")
