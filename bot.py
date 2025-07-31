@@ -155,6 +155,7 @@ def place_order(symbol, side):
 @app.route('/webhook', methods=['POST'])
 def webhook():
     if not is_ready:
+　　　　logger.info(f"準備失敗")
         return jsonify({"error": "Server not ready"}), 503
 
     data = request.json
