@@ -120,10 +120,10 @@ def create_app():
                 return {'error': f"注文数量({quantity})が最小数量({min_amount})未満です"}
 
             if side.lower() == 'buy':
-                tp_price_raw = price * 1.001
+                tp_price_raw = price * 1.002
                 sl_price_raw = price * 0.997
             else:
-                tp_price_raw = price * 0.999
+                tp_price_raw = price * 0.998
                 sl_price_raw = price * 1.003
 
             tp_price = float(exchange.price_to_precision(symbol, tp_price_raw))
